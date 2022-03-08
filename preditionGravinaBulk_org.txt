@@ -1,0 +1,3 @@
+sitesUsed	predictedAge
+MethRate_SRR3136665_o3b_-_Liver_hepatocytes_bulk_1_GRCm38_bismark_bt2.deduplicated.bismark.cov.gz	515	95
+MethRate_SRR3136667_y3b_-_Liver_hepatocytes_bulk_1_GRCm38_bismark_bt2.deduplicated.bismark.cov.gz	580	10
