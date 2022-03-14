@@ -10,13 +10,36 @@ folderInput = "Gravina_2016/SingleCell/"
 ## output file with aging information.
 #outputFileName="./preditionGravinaBulk.txt"
 outputFileName="./preditionGravinaSc.txt"
+
+##If there are known age calculate confidence on the difference observed.
+nSimulations = 10
+
+##Age information
+# ageInfo = NULL
+# ageInfo = read.delim("./GravinaBulkInfo.txt")
+ageInfo = read.delim("./GravinaScInfo.txt")
+
+## ouput file name with extended information.
+# outputFileNameExtended = NA
+# outputFileNameExtended="./preditionGravinaBulk.extended.txt"
+outputFileNameExtended="./preditionGravinaSc.extended.txt"
+
+calcExtendedStats = F
+if(!is.na(outputFileNameExtended) & !is.null(ageInfo)){
+  calcExtendedStats=T
+}
 ###################### 
+
+
+## Actual code form here:
+
 
 ###### Source ########
 ##source prediction functions.
 source("./PredictionFunctions/functions.R")
 ###################### 
 
+##### Load data ######
 if(tissue=="liver"){
   expectedMethMatrix <- read.delim("./ExpectedMethylationMatrices/ExpectedMethMat_Liver.tsv",as.is=T,row.names=1,check.names = F)
   backupInformation <- read.delim("./SiteInformation/clockSites_Liver_BackUp.txt",as.is=T)
@@ -31,9 +54,14 @@ if(tissue=="liver"){
   stop();
 }
 
+##Predict.
 inputMethMatrix = readCovFiles(folderInput,backupInformation);
 
-
 predictionOut = predictAges(inputMethMatrix, backupInformation, expectedMethMatrix);
-
 write.table(predictionOut,outputFileName,sep="\t",quote=F)
+
+if(calcExtendedStats){
+  predictionOutVersusExpected = predictAgesAndCalculateExpectedGivenAgeSc(inputMethMatrix, backupInformation, expectedMethMatrix, ageInfo, nSimulations);
+  write.table(predictionOutVersusExpected,outputFileNameExtended,sep="\t",quote=F)
+}
+
