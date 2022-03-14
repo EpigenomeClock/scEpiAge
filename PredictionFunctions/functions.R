@@ -6,15 +6,24 @@ readCovFiles <- function(inputFolder, backupInformation){
   scFiles = list.files(inputFolder,full.names = T)
   scMeth = NULL
   for(f in scFiles){
+    print(f)
     scInfo <- read.delim(f,as.is=T,header=F,colClasses = c("character","double","double","double","double","double"))
     
     scInfo[,1] = paste(scInfo[,1],scInfo[,2],sep=":")
-    #Proper bismark file with all info.
+    
+    ##subset to interesting sites.
+    scInfo = scInfo[which(scInfo[,1] %in% sitesToConsiderFull),]
+    
+    #Make into 0-1
     scInfo[,4] = scInfo[,4]/100
+    
+    #Read-depth.
     scInfo[,5] = scInfo[,5]+scInfo[,6]
+    print(paste("Average read-depth clock sites:",mean(scInfo[,5])))
+    
+    #Subset to methylation and row id only.
     scInfo = scInfo[,c(1,4)]
     
-    scInfo = scInfo[which(scInfo[,1] %in% sitesToConsiderFull),]
     partsName = strsplit(f,"/")[[1]]
     colnames(scInfo) <- c("ID",paste("MethRate_", partsName[length(partsName)],sep = ""))
     
@@ -145,7 +154,7 @@ predictAges <- function(scMethMat, backupInformation, expectedMethMat){
 
 
 ##Prediction and simulated expected age prediction on the same sites.
-predictAgesAndCalculateExpectedGivenAgeSc <- function(scMethMat, backupInformation, expectedMethMat, expectedAges, nSimulations){
+predictAgesAndCalculateExpectedGivenAge <- function(scMethMat, backupInformation, expectedMethMat, expectedAges, nSimulations){
   ##Test how the prediction would work on bulk [Not assuming 0-1 values only.]
   sitesToConsider = unique(backupInformation[,1])
   methData_validation_sel = scMethMat[which(rownames(scMethMat) %in% (sitesToConsider)),]
@@ -274,16 +283,25 @@ predictAgesAndCalculateExpectedGivenAgeSc <- function(scMethMat, backupInformati
       stop();
     }
     
-    for(rId in 1:nrow(expectedRandomScData)){
-      methylationvalues <- runif(nSimulations, 0, 1)
-      methVexp = expectedMethMat[which(rownames(expectedMethMat)==siteNames[rId]),colOfInterest]
-      methVexp = quantile(methylationvalues,(1-methVexp))
+    for(x in 1:ageInfo[sc,3]){
+      for(rId in 1:nrow(expectedRandomScData)){
+        methylationvalues <- runif(nSimulations, 0, 1)
+        methVexp = expectedMethMat_sel_r[rId,colOfInterest]
+        methVexp = quantile(methylationvalues,(1-methVexp))
+        
+        methylationvalues[which(methylationvalues<=methVexp)]=0
+        methylationvalues[which(methylationvalues>methVexp)]=1
+        if(all(is.na(expectedRandomScData[rId,]))){
+          expectedRandomScData[rId,] = methylationvalues 
+        } else {
+          expectedRandomScData[rId,] = expectedRandomScData[rId,]+methylationvalues 
+        }
+        
+      }
       
-      methylationvalues[which(methylationvalues<=methVexp)]=0
-      methylationvalues[which(methylationvalues>methVexp)]=1
-      expectedRandomScData[rId,] = methylationvalues 
     }
-    
+    expectedRandomScData = expectedRandomScData/ageInfo[sc,3]
+    #mean(rowMeans(expectedRandomScData)-expectedMethMat_sel_r[,colOfInterest])
     
     ##Age predict.
     predictedAgesRandom = NULL
@@ -318,3 +336,4 @@ predictAgesAndCalculateExpectedGivenAgeSc <- function(scMethMat, backupInformati
   rownames(predictionMatrix) = colnames(methData_validation_sel)
   return(predictionMatrix)
 }
+
