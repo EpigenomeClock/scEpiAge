@@ -142,3 +142,4 @@ predictAges <- function(scMethMat, backupInformation, expectedMethMat){
   rownames(predictionMatrix) = colnames(methData_validation_sel)
   return(predictionMatrix)
 }
+
