@@ -4,35 +4,36 @@ setwd("C:/Documents and Settings/admm414r/Documents/GitHub/AgingClock_v2/")
 tissue="liver"
 
 ##Folder with COV files.
-#folderInput = "Gravina_2016/Bulk/"
-folderInput = "Gravina_2016/SingleCell/"
+folderInput = "Gravina_2016/Bulk/"
+#folderInput = "Gravina_2016/SingleCell/"
 
 ## output file with aging information.
-#outputFileName="./preditionGravinaBulk.txt"
-outputFileName="./preditionGravinaSc.txt"
+outputFileName="./preditionGravinaBulk.txt"
+#outputFileName="./preditionGravinaSc.txt"
 
 ##If there are known age calculate confidence on the difference observed.
 nSimulations = 10
 
 ##Age information
 # ageInfo = NULL
-# ageInfo = read.delim("./GravinaBulkInfo.txt")
-ageInfo = read.delim("./GravinaScInfo.txt")
+ageInfo = read.delim("./GravinaBulkInfo.txt")
+# ageInfo = read.delim("./GravinaScInfo.txt")
 
 ## ouput file name with extended information.
 # outputFileNameExtended = NA
-# outputFileNameExtended="./preditionGravinaBulk.extended.txt"
-outputFileNameExtended="./preditionGravinaSc.extended.txt"
-
-calcExtendedStats = F
-if(!is.na(outputFileNameExtended) & !is.null(ageInfo)){
-  calcExtendedStats=T
-}
+outputFileNameExtended="./preditionGravinaBulk.extended.txt"
+# outputFileNameExtended="./preditionGravinaSc.extended.txt"
 ###################### 
 
 
 ## Actual code form here:
 
+calcExtendedStats = F
+if(!is.na(outputFileNameExtended) & !is.null(ageInfo)){
+  calcExtendedStats=T
+} else {
+  print("Not given age information or output filename for the extended analysis")
+}
 
 ###### Source ########
 ##source prediction functions.
@@ -57,11 +58,16 @@ if(tissue=="liver"){
 ##Predict.
 inputMethMatrix = readCovFiles(folderInput,backupInformation);
 
-predictionOut = predictAges(inputMethMatrix, backupInformation, expectedMethMatrix);
-write.table(predictionOut,outputFileName,sep="\t",quote=F)
-
 if(calcExtendedStats){
-  predictionOutVersusExpected = predictAgesAndCalculateExpectedGivenAgeSc(inputMethMatrix, backupInformation, expectedMethMatrix, ageInfo, nSimulations);
+  if(sc){
+    predictionOutVersusExpected = predictAgesAndCalculateExpectedGivenAgeSc(inputMethMatrix, backupInformation, expectedMethMatrix, ageInfo, nSimulations);  
+  } else {
+    predictionOutVersusExpected = predictAgesAndCalculateExpectedGivenAgeBulk(inputMethMatrix, backupInformation, expectedMethMatrix, ageInfo, nSimulations);
+  }
+  
   write.table(predictionOutVersusExpected,outputFileNameExtended,sep="\t",quote=F)
+} else {
+  predictionOut = predictAges(inputMethMatrix, backupInformation, expectedMethMatrix);
+  write.table(predictionOut,outputFileName,sep="\t",quote=F)  
 }
 

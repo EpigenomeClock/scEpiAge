@@ -144,7 +144,7 @@ predictAges <- function(scMethMat, backupInformation, expectedMethMat){
 }
 
 
-##Prediction and predict range
+##Prediction and simulated expected age prediction on the same sites.
 predictAgesAndCalculateExpectedGivenAgeSc <- function(scMethMat, backupInformation, expectedMethMat, expectedAges, nSimulations){
   ##Test how the prediction would work on bulk [Not assuming 0-1 values only.]
   sitesToConsider = unique(backupInformation[,1])
