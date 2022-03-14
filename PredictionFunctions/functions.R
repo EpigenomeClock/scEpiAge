@@ -155,7 +155,7 @@ predictAges <- function(scMethMat, backupInformation, expectedMethMat){
 
 ##Prediction and simulated expected age prediction on the same sites.
 predictAgesAndCalculateExpectedGivenAge <- function(scMethMat, backupInformation, expectedMethMat, expectedAges, nSimulations, plot=T){
-  ##Test how the prediction would work on bulk [Not assuming 0-1 values only.]
+  scMethMat = inputMethMatrix; expectedMethMat = expectedMethMatrix; expectedAges = ageInfo;
   sitesToConsider = unique(backupInformation[,1])
   methData_validation_sel = scMethMat[which(rownames(scMethMat) %in% (sitesToConsider)),]
   methData_validation_sel = methData_validation_sel[order(rownames(methData_validation_sel)),]
@@ -183,7 +183,7 @@ predictAgesAndCalculateExpectedGivenAge <- function(scMethMat, backupInformation
     ##statics.
     ageProbability = rep(0,ncol(expectedMethMat_sel))
     maxDistance = 0
-    predictionMatrix[sc,1] <- expectedAges[2,sc]
+    predictionMatrix[sc,1] <- expectedAges[sc,2]
     
     #Actual data.
     relMeth = which(!is.na(methData_validation_sel[,sc]))
