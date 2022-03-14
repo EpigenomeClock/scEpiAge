@@ -154,7 +154,7 @@ predictAges <- function(scMethMat, backupInformation, expectedMethMat){
 
 
 ##Prediction and simulated expected age prediction on the same sites.
-predictAgesAndCalculateExpectedGivenAge <- function(scMethMat, backupInformation, expectedMethMat, expectedAges, nSimulations){
+predictAgesAndCalculateExpectedGivenAge <- function(scMethMat, backupInformation, expectedMethMat, expectedAges, nSimulations, plot=T){
   ##Test how the prediction would work on bulk [Not assuming 0-1 values only.]
   sitesToConsider = unique(backupInformation[,1])
   methData_validation_sel = scMethMat[which(rownames(scMethMat) %in% (sitesToConsider)),]
@@ -176,17 +176,18 @@ predictAgesAndCalculateExpectedGivenAge <- function(scMethMat, backupInformation
   }
   
   #To store prediction information.
-  predictionMatrix <- matrix(NA,ncol=6, nrow=ncol(methData_validation_sel))
-  colnames(predictionMatrix) <- c("sitesUsed","predictedAge","MedianRandomAge","MAD","MAD_Ratio","FDR")
+  predictionMatrix <- matrix(NA,ncol=7, nrow=ncol(methData_validation_sel))
+  colnames(predictionMatrix) <- c("actualAge","sitesUsed","predictedAge","MedianRandomAge","MAD","MAD_Ratio","FDR")
   ##Quick correlation and MLE based method (for speed up). We do 2 MLE methods one weighted one unweighted, for correlations we can't use read-depth.
   for(sc in 1:ncol(methData_validation_sel)){
     ##statics.
     ageProbability = rep(0,ncol(expectedMethMat_sel))
     maxDistance = 0
+    predictionMatrix[sc,1] <- expectedAges[2,sc]
     
     #Actual data.
     relMeth = which(!is.na(methData_validation_sel[,sc]))
-    predictionMatrix[sc,1] <- length(relMeth)
+    predictionMatrix[sc,2] <- length(relMeth)
     replacementValues = NULL
     
     if(length(relMeth)<length(sitesToConsider)){
@@ -256,7 +257,7 @@ predictAgesAndCalculateExpectedGivenAge <- function(scMethMat, backupInformation
       
       relMeth = which(!is.na(methData_validation_sel_t[,sc]))
       
-      predictionMatrix[sc,1] <- length(relMeth)
+      predictionMatrix[sc,2] <- length(relMeth)
       #MLE
       for(cpg in (1:(length(relMeth)))){
         #predictionMatrix
@@ -267,7 +268,7 @@ predictAgesAndCalculateExpectedGivenAge <- function(scMethMat, backupInformation
       rm(methData_validation_sel_t,expectedMethMat_sel_t)
     }
     
-    predictionMatrix[sc,2] = floor(median(as.numeric(names(ageProbability)[which(ageProbability == max(ageProbability))])))
+    predictionMatrix[sc,3] = floor(median(as.numeric(names(ageProbability)[which(ageProbability == max(ageProbability))])))
     
     ##Start predictions on random methylation values, on the right sides and forming the expected bulk methylation profile for a given age.
     colOfInterest = which(colnames(expectedMethMat)==expectedAges[sc,2])
@@ -313,23 +314,23 @@ predictAgesAndCalculateExpectedGivenAge <- function(scMethMat, backupInformation
       }
       predictedAgesRandom = c(predictedAgesRandom,as.numeric(colnames(expectedMethMat_sel_r)[which(ageProbabilityR == max(ageProbabilityR))]))
     }
-    ##
-    #hist(predictedAgesRandom,xlim=c(min(as.numeric(colnames(expectedMethMat))),max(as.numeric(colnames(expectedMethMat)))))
-    #abline(v=predictionMatrix[sc,2],col="red")
-    #abline(v=median(predictedAgesRandom),col="blue")
-    ##
+    if(plot){
+      hist(predictedAgesRandom,xlim=c(min(as.numeric(colnames(expectedMethMat))),max(as.numeric(colnames(expectedMethMat)))))
+      abline(v=predictionMatrix[sc,2],col="red")
+      abline(v=median(predictedAgesRandom),col="blue")
+    }
     
-    predictionMatrix[sc,3] =  median(predictedAgesRandom)
-    predictionMatrix[sc,4] =  mad(predictedAgesRandom)
-    predictionMatrix[sc,5] =  (predictionMatrix[sc,2]-predictionMatrix[sc,3])/predictionMatrix[sc,4]
-    if(predictionMatrix[sc,5]>0){
-      predictionMatrix[sc,6] = length(which(predictedAgesRandom>=predictionMatrix[sc,2]))/nSimulations
+    predictionMatrix[sc,4] =  median(predictedAgesRandom)
+    predictionMatrix[sc,5] =  mad(predictedAgesRandom)
+    predictionMatrix[sc,6] =  (predictionMatrix[sc,3]-predictionMatrix[sc,4])/predictionMatrix[sc,5]
+    if(predictionMatrix[sc,6]>0){
+      predictionMatrix[sc,7] = length(which(predictedAgesRandom>=predictionMatrix[sc,3]))/nSimulations
     } else {
-      predictionMatrix[sc,6] = length(which(predictedAgesRandom<=predictionMatrix[sc,2]))/nSimulations
+      predictionMatrix[sc,7] = length(which(predictedAgesRandom<=predictionMatrix[sc,3]))/nSimulations
     }
     #Making sure we don't under-estimate FDR, rounding up to the minimal possible at this level of permutations.
-    if(predictionMatrix[sc,6]==0){
-      predictionMatrix[sc,6] = 1/nSimulations
+    if(predictionMatrix[sc,7]==0){
+      predictionMatrix[sc,7] = 1/nSimulations
     }
   }
   
