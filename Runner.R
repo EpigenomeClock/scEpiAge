@@ -12,7 +12,7 @@ outputFileName="./preditionGravinaBulk.txt"
 #outputFileName="./preditionGravinaSc.txt"
 
 ##If there are known age calculate confidence on the difference observed.
-nSimulations = 10
+nSimulations = 5
 
 ##Age information
 # ageInfo = NULL
@@ -23,6 +23,9 @@ ageInfo = read.delim("./GravinaBulkInfo.txt")
 # outputFileNameExtended = NA
 outputFileNameExtended="./preditionGravinaBulk.extended.txt"
 # outputFileNameExtended="./preditionGravinaSc.extended.txt"
+
+plot=T
+
 ###################### 
 
 
@@ -59,12 +62,7 @@ if(tissue=="liver"){
 inputMethMatrix = readCovFiles(folderInput,backupInformation);
 
 if(calcExtendedStats){
-  if(sc){
-    predictionOutVersusExpected = predictAgesAndCalculateExpectedGivenAgeSc(inputMethMatrix, backupInformation, expectedMethMatrix, ageInfo, nSimulations);  
-  } else {
-    predictionOutVersusExpected = predictAgesAndCalculateExpectedGivenAgeBulk(inputMethMatrix, backupInformation, expectedMethMatrix, ageInfo, nSimulations);
-  }
-  
+  predictionOutVersusExpected = predictAgesAndCalculateExpectedGivenAge(inputMethMatrix, backupInformation, expectedMethMatrix, ageInfo, nSimulations,plot);
   write.table(predictionOutVersusExpected,outputFileNameExtended,sep="\t",quote=F)
 } else {
   predictionOut = predictAges(inputMethMatrix, backupInformation, expectedMethMatrix);
