@@ -64,9 +64,9 @@ predictAges <- function(scMethMat, backupInformation, expectedMethMat){
     
     #Actual data.
     relMeth = which(!is.na(methData_validation_sel[,sc]))
-    predictionMatrix[sc,1] <- length(relMeth)
     replacementValues = NULL
     
+    ##Try and add backup info.
     if(length(relMeth)<length(sitesToConsider)){
       #Get infomation for replacement values.
       replacementValues = backupInformation[which(backupInformation[,1]%in% names(which(is.na(methData_validation_sel[,sc])))),]
@@ -104,16 +104,16 @@ predictAges <- function(scMethMat, backupInformation, expectedMethMat){
       
       ##
     }
-    
+
     if((length(relMeth)+length(replacementValues))<5){
       next();
     }
     
-    if(is.null(replacementValues)){
-      for(cpg in (1:(length(relMeth)))){
-        scores = log(1-abs(expectedMethMat_sel[relMeth[cpg],]- methData_validation_sel[relMeth[cpg],sc]))
-        ageProbability = ageProbability+scores;
-      }
+    methData_validation_sel_t = NULL
+    expectedMethMat_sel_t = NULL    
+    if((is.null(replacementValues))){
+      methData_validation_sel_t = methData_validation_sel[relMeth,sc]
+      expectedMethMat_sel_t = expectedMethMat_sel[relMeth,]
     } else {
       ##Need to add the backup sites here.
       methData_validation_sel_t = rbind(methData_validation_sel,scMethMat[which(rownames(scMethMat)%in%replacementValues),])
@@ -126,36 +126,32 @@ predictAges <- function(scMethMat, backupInformation, expectedMethMat){
       }
       methData_validation_sel_t = methData_validation_sel_t[order(rownames(methData_validation_sel_t)),]
       expectedMethMat_sel_t = expectedMethMat_sel_t[order(rownames(expectedMethMat_sel_t)),]
-      
-      if(!all(rownames(methData_validation_sel_t)==rownames(expectedMethMat_sel_t))){
-        print("something wrong with the input matrices, after placing backup values.")
-        stop();
-      }
-      
+
       relMeth = which(!is.na(methData_validation_sel_t[,sc]))
       
-      predictionMatrix[sc,1] <- length(relMeth)
-      #MLE
-      for(cpg in (1:(length(relMeth)))){
-        #predictionMatrix
-        #Works for high methylation.
-        scores = log(1-abs(expectedMethMat_sel_t[relMeth[cpg],]- methData_validation_sel_t[relMeth[cpg],sc]))
-        ageProbability = ageProbability+scores;
-      }
-      rm(methData_validation_sel_t,expectedMethMat_sel_t)
+      methData_validation_sel_t = methData_validation_sel_t[relMeth,sc]
+      expectedMethMat_sel_t = expectedMethMat_sel_t[relMeth,]
     }
     
+    if(!all(rownames(methData_validation_sel_t)==rownames(expectedMethMat_sel_t))){
+      print("something wrong with the input matrices.")
+      stop();
+    }
+    
+    predictionMatrix[sc,1] <- length(relMeth)
+    ageProbability = colSums(log(1-abs(expectedMethMat_sel_t - methData_validation_sel_t)))
     predictionMatrix[sc,2] = floor(median(as.numeric(names(ageProbability)[which(ageProbability == max(ageProbability))])))
+    rm(methData_validation_sel_t,expectedMethMat_sel_t)
     
   }
   rownames(predictionMatrix) = colnames(methData_validation_sel)
   return(predictionMatrix)
 }
 
-
 ##Prediction and simulated expected age prediction on the same sites.
 predictAgesAndCalculateExpectedGivenAge <- function(scMethMat, backupInformation, expectedMethMat, expectedAges, nSimulations, plot=T){
-  scMethMat = inputMethMatrix; expectedMethMat = expectedMethMatrix; expectedAges = ageInfo;
+  #scMethMat = inputMethMatrix; expectedMethMat = expectedMethMatrix; expectedAges = ageInfo;
+  
   sitesToConsider = unique(backupInformation[,1])
   methData_validation_sel = scMethMat[which(rownames(scMethMat) %in% (sitesToConsider)),]
   methData_validation_sel = methData_validation_sel[order(rownames(methData_validation_sel)),]
@@ -183,13 +179,12 @@ predictAgesAndCalculateExpectedGivenAge <- function(scMethMat, backupInformation
     ##statics.
     ageProbability = rep(0,ncol(expectedMethMat_sel))
     maxDistance = 0
-    predictionMatrix[sc,1] <- expectedAges[sc,2]
     
     #Actual data.
     relMeth = which(!is.na(methData_validation_sel[,sc]))
-    predictionMatrix[sc,2] <- length(relMeth)
     replacementValues = NULL
     
+    ##Try and add backup info.
     if(length(relMeth)<length(sitesToConsider)){
       #Get infomation for replacement values.
       replacementValues = backupInformation[which(backupInformation[,1]%in% names(which(is.na(methData_validation_sel[,sc])))),]
@@ -232,11 +227,11 @@ predictAgesAndCalculateExpectedGivenAge <- function(scMethMat, backupInformation
       next();
     }
     
-    if(is.null(replacementValues)){
-      for(cpg in (1:(length(relMeth)))){
-        scores = log(1-abs(expectedMethMat_sel[relMeth[cpg],]- methData_validation_sel[relMeth[cpg],sc]))
-        ageProbability = ageProbability+scores;
-      }
+    methData_validation_sel_t = NULL
+    expectedMethMat_sel_t = NULL    
+    if((is.null(replacementValues))){
+      methData_validation_sel_t = methData_validation_sel[relMeth,sc]
+      expectedMethMat_sel_t = expectedMethMat_sel[relMeth,]
     } else {
       ##Need to add the backup sites here.
       methData_validation_sel_t = rbind(methData_validation_sel,scMethMat[which(rownames(scMethMat)%in%replacementValues),])
@@ -250,34 +245,30 @@ predictAgesAndCalculateExpectedGivenAge <- function(scMethMat, backupInformation
       methData_validation_sel_t = methData_validation_sel_t[order(rownames(methData_validation_sel_t)),]
       expectedMethMat_sel_t = expectedMethMat_sel_t[order(rownames(expectedMethMat_sel_t)),]
       
-      if(!all(rownames(methData_validation_sel_t)==rownames(expectedMethMat_sel_t))){
-        print("something wrong with the input matrices, after placing backup values.")
-        stop();
-      }
-      
       relMeth = which(!is.na(methData_validation_sel_t[,sc]))
       
-      predictionMatrix[sc,2] <- length(relMeth)
-      #MLE
-      for(cpg in (1:(length(relMeth)))){
-        #predictionMatrix
-        #Works for high methylation.
-        scores = log(1-abs(expectedMethMat_sel_t[relMeth[cpg],]- methData_validation_sel_t[relMeth[cpg],sc]))
-        ageProbability = ageProbability+scores;
-      }
-      rm(methData_validation_sel_t,expectedMethMat_sel_t)
+      methData_validation_sel_t = methData_validation_sel_t[relMeth,sc]
+      expectedMethMat_sel_t = expectedMethMat_sel_t[relMeth,]
     }
     
+    if(!all(rownames(methData_validation_sel_t)==rownames(expectedMethMat_sel_t))){
+      print("something wrong with the input matrices.")
+      stop();
+    }
+    
+    predictionMatrix[sc,1] <- ageInfo[sc,2]
+    predictionMatrix[sc,2] <- length(relMeth)
+    ageProbability = colSums(log(1-abs(expectedMethMat_sel_t - methData_validation_sel_t)))
     predictionMatrix[sc,3] = floor(median(as.numeric(names(ageProbability)[which(ageProbability == max(ageProbability))])))
     
     ##Start predictions on random methylation values, on the right sides and forming the expected bulk methylation profile for a given age.
     colOfInterest = which(colnames(expectedMethMat)==expectedAges[sc,2])
-    siteNames = unique(names(relMeth),replacementValues)
     
-    expectedMethMat_sel_r = expectedMethMat[which(rownames(expectedMethMat) %in% siteNames),]
+    expectedMethMat_sel_r = as.matrix(expectedMethMat_sel_t[,colOfInterest],ncol=1)
+    rownames(expectedMethMat_sel_r) = rownames(expectedMethMat_sel_t)
     
     expectedRandomScData = matrix(NA,ncol=nSimulations,nrow=nrow(expectedMethMat_sel_r))
-    rownames(expectedRandomScData)= rownames(expectedMethMat)[which(rownames(expectedMethMat) %in% siteNames)]
+    rownames(expectedRandomScData)= rownames(expectedMethMat_sel_r)
     
     if(!all(rownames(expectedRandomScData) == rownames(expectedMethMat_sel_r))){
       #Rownames don't match
@@ -287,7 +278,7 @@ predictAgesAndCalculateExpectedGivenAge <- function(scMethMat, backupInformation
     for(x in 1:ageInfo[sc,3]){
       for(rId in 1:nrow(expectedRandomScData)){
         methylationvalues <- runif(nSimulations, 0, 1)
-        methVexp = expectedMethMat_sel_r[rId,colOfInterest]
+        methVexp = expectedMethMat_sel_r[rId,1]
         methVexp = quantile(methylationvalues,(1-methVexp))
         
         methylationvalues[which(methylationvalues<=methVexp)]=0
@@ -297,26 +288,20 @@ predictAgesAndCalculateExpectedGivenAge <- function(scMethMat, backupInformation
         } else {
           expectedRandomScData[rId,] = expectedRandomScData[rId,]+methylationvalues 
         }
-        
       }
-      
     }
     expectedRandomScData = expectedRandomScData/ageInfo[sc,3]
-    #mean(rowMeans(expectedRandomScData)-expectedMethMat_sel_r[,colOfInterest])
+    #mean(rowMeans(expectedRandomScData)-expectedMethMat_sel_r[,1])
     
     ##Age predict.
     predictedAgesRandom = NULL
     for(cId in 1:nSimulations){
-      ageProbabilityR = rep(0,ncol(expectedMethMat_sel_r))
-      for(cpg in 1:nrow(expectedMethMat_sel_r)){
-        scores = log(1-abs(expectedMethMat_sel_r[cpg,]- expectedRandomScData[cpg,cId]))
-        ageProbabilityR = ageProbabilityR+scores;
-      }
-      predictedAgesRandom = c(predictedAgesRandom,as.numeric(colnames(expectedMethMat_sel_r)[which(ageProbabilityR == max(ageProbabilityR))]))
+      ageProbabilityR = colSums(log(1-abs(expectedMethMat_sel_t - expectedRandomScData[,cId])))
+      predictedAgesRandom = c(predictedAgesRandom,as.numeric(colnames(expectedMethMat_sel_t)[which(ageProbabilityR == max(ageProbabilityR))]))
     }
     if(plot){
       hist(predictedAgesRandom,xlim=c(min(as.numeric(colnames(expectedMethMat))),max(as.numeric(colnames(expectedMethMat)))))
-      abline(v=predictionMatrix[sc,2],col="red")
+      abline(v=predictionMatrix[sc,3],col="red")
       abline(v=median(predictedAgesRandom),col="blue")
     }
     
@@ -332,9 +317,49 @@ predictAgesAndCalculateExpectedGivenAge <- function(scMethMat, backupInformation
     if(predictionMatrix[sc,7]==0){
       predictionMatrix[sc,7] = 1/nSimulations
     }
+    rm(methData_validation_sel_t,expectedMethMat_sel_t,expectedRandomScData)
   }
   
   rownames(predictionMatrix) = colnames(methData_validation_sel)
   return(predictionMatrix)
 }
 
+##Simulating and dropping sites X times
+dropSites <- function(scMethMat, nRep = 20, minSites=5, maxSites = 750 ) {
+  BabrahamSimExtended = NULL
+  
+  for(sampleN in 1:ncol(scMethMat)){
+    sampleName = colnames(scMethMat)[sampleN]
+    
+    #Here we go to only the observed sites to start.
+    toSampleFrom = which(!is.na(scMethMat[,sampleN]))
+    
+    if(length(toSampleFrom)<maxSites){
+      maxSites = length(toSampleFrom)  
+    }
+    
+    steps = (maxSites - minSites+1)
+    #print(paste(sampleName,maxSites))
+    simExtended = matrix(NA,nrow=nrow(scMethMat),ncol=(steps*nRep))
+    colCounter = 0;
+    colnames(simExtended) = rep("",ncol(simExtended))
+    rownames(simExtended) = rownames(scMethMat)
+    for(siteN in c(minSites:maxSites)){
+      if(siteN!=maxSites){
+        for(repN in 1:nRep){
+          colCounter = colCounter+1
+          sampleInfo = as.numeric(sample(toSampleFrom,siteN))
+          simExtended[sampleInfo,colCounter] = scMethMat[sampleInfo,sampleN]
+          colnames(simExtended)[colCounter] = paste(sampleName,"#Observed:",siteN,"#Replication:",repN,sep="")
+        }
+      } else {
+        colCounter = colCounter+1
+        simExtended[toSampleFrom,colCounter] = scMethMat[toSampleFrom,sampleN]
+        colnames(simExtended)[colCounter] = paste(sampleName,"#Observed:",siteN,"#All",sep="")
+        ##All sites.
+      }
+    }
+    BabrahamSimExtended = cbind(BabrahamSimExtended,simExtended)
+  }
+  return(BabrahamSimExtended)
+}
