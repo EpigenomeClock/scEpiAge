@@ -5,7 +5,7 @@ tissue="liver"
 
 ##Folder with COV files.
 #folderInput = "Gravina_2016/Bulk/"
-#folderInput = "Gravina_2016/SingleCell/"
+folderInput = "Gravina_2016/SingleCell/"
 
 ## output file with aging information.
 #outputFileName="./preditionGravinaBulk.txt"
@@ -13,16 +13,19 @@ outputFileName="./preditionGravinaSc.txt"
 
 ##If there are known age calculate confidence on the difference observed.
 nSimulations = 5
+rep = 20
 
 ##Age information
 # ageInfo = NULL
 #ageInfo = read.delim("./GravinaBulkInfo.txt")
-ageInfo = read.delim("./GravinaScInfo2.txt")
+ageInfo = read.delim("./GravinaScInfo.test.txt")
 
 ## ouput file name with extended information.
-# outputFileNameExtended = NA
+outputFileNameExtended = NA
 # outputFileNameExtended="./preditionGravinaBulk.extended.txt"
 # outputFileNameExtended="./preditionGravinaSc.extended.txt"
+
+
 
 plot=T
 
@@ -65,7 +68,7 @@ if(calcExtendedStats){
   predictionOutVersusExpected = predictAgesAndCalculateExpectedGivenAge(inputMethMatrix, backupInformation, expectedMethMatrix, ageInfo, nSimulations,plot);
   write.table(predictionOutVersusExpected,outputFileNameExtended,sep="\t",quote=F)
 } else {
-  predictionOut = predictAges(inputMethMatrix, backupInformation, expectedMethMatrix);
+  predictionOut = predictAges(dropSites(inputMethMatrix,nRep = rep,minSites = 50,maxSites = 75), backupInformation, expectedMethMatrix);
   write.table(predictionOut,outputFileName,sep="\t",quote=F)  
 }
 
