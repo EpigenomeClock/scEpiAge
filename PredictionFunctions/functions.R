@@ -3,7 +3,15 @@
 #### Read COV files
 readCovFiles <- function(inputFolder, backupInformation){
   sitesToConsiderFull = unique(c(backupInformation[,1],backupInformation[,2]))
-  scFiles = list.files(inputFolder,full.names = T)
+  scFiles = list.files(inputFolder,full.names = T,recursive = T)
+  scFiles = scFiles[grep(scFiles,pattern = ".cov$|.cov.gz$")]
+  
+  if(length(scFiles)==0){
+    print("Error no files to be read in.")
+  }
+  
+  
+  options(warn = 2)
   scMeth = NULL
   for(f in scFiles){
     print(f)
@@ -33,6 +41,55 @@ readCovFiles <- function(inputFolder, backupInformation){
       scMeth = merge(scMeth, scInfo,by = "ID",all = T)
     }
   }
+  options(warn = 1)
+  
+  rownames(scMeth) = scMeth$ID
+  scMeth = scMeth[,-1]
+  scMethMat = as.matrix(scMeth)
+  rm(scMeth)
+  return(scMethMat)
+}
+
+
+#### Read subsetted COV files
+readScCovFiles <- function(inputFolder, backupInformation){
+  sitesToConsiderFull = unique(c(backupInformation[,1],backupInformation[,2]))
+  scFiles = list.files(inputFolder,full.names = T,recursive = T)
+  scFiles = scFiles[grep(scFiles,pattern = ".cov$|.cov.gz$")]
+  
+  if(length(scFiles)==0){
+    print("Error no files to be read in.")
+  }
+  
+  options(warn = 2)
+  scMeth = NULL
+  for(f in scFiles){
+    print(f)
+    scInfo <- read.delim(f,as.is=T,header=F,colClasses = c("character","double","double"))
+    
+    scInfo[,1] = paste(scInfo[,1],scInfo[,2],sep=":")
+    
+    ##subset to interesting sites.
+    scInfo = scInfo[which(scInfo[,1] %in% sitesToConsiderFull),]
+    
+    #Make into 0-1
+    #scInfo[,4] = scInfo[,4]/100
+    
+    print("Average read-depth clock sites: 1")
+    
+    #Subset to methylation and row id only.
+    scInfo = scInfo[,c(1,3)]
+    
+    partsName = strsplit(f,"/")[[1]]
+    colnames(scInfo) <- c("ID",paste("MethRate_", partsName[length(partsName)],sep = ""))
+    
+    if(is.null(scMeth)){
+      scMeth = scInfo
+    } else {
+      scMeth = merge(scMeth, scInfo,by = "ID",all = T)
+    }
+  }
+  options(warn = 1)
   
   rownames(scMeth) = scMeth$ID
   scMeth = scMeth[,-1]
@@ -149,7 +206,7 @@ predictAges <- function(scMethMat, backupInformation, expectedMethMat){
 }
 
 ##Prediction and simulated expected age prediction on the same sites.
-predictAgesAndCalculateExpectedGivenAge <- function(scMethMat, backupInformation, expectedMethMat, expectedAges, nSimulations, plot=T){
+predictAgesAndCalculateExpectedGivenAge <- function(scMethMat, backupInformation, expectedMethMat, expectedAges, nSimulations, plotHist=T){
   #scMethMat = inputMethMatrix; expectedMethMat = expectedMethMatrix; expectedAges = ageInfo;
   
   sitesToConsider = unique(backupInformation[,1])
@@ -160,6 +217,7 @@ predictAgesAndCalculateExpectedGivenAge <- function(scMethMat, backupInformation
   ##Order colnames and first column
   methData_validation_sel = methData_validation_sel[,order(colnames(methData_validation_sel))]
   expectedAges = expectedAges[order(expectedAges[,1]),]
+  expectedAges = expectedAges[which(expectedAges[,1] %in% colnames(methData_validation_sel)),]
   
   if(!all(rownames(methData_validation_sel)==rownames(expectedMethMat_sel))){
     print("something wrong with the input matrices")
@@ -172,10 +230,11 @@ predictAgesAndCalculateExpectedGivenAge <- function(scMethMat, backupInformation
   }
   
   #To store prediction information.
-  predictionMatrix <- matrix(NA,ncol=7, nrow=ncol(methData_validation_sel))
-  colnames(predictionMatrix) <- c("actualAge","sitesUsed","predictedAge","MedianRandomAge","MAD","MAD_Ratio","FDR")
+  predictionMatrix <- matrix(NA,ncol=9, nrow=ncol(methData_validation_sel))
+  colnames(predictionMatrix) <- c("actualAge","sitesUsed","readDepth","predictedAge","ageDeviation","medianRandomAge","IQR","IQR_Ratio","FDR")
   ##Quick correlation and MLE based method (for speed up). We do 2 MLE methods one weighted one unweighted, for correlations we can't use read-depth.
   for(sc in 1:ncol(methData_validation_sel)){
+    print(expectedAges[sc,])
     ##statics.
     ageProbability = rep(0,ncol(expectedMethMat_sel))
     maxDistance = 0
@@ -258,8 +317,10 @@ predictAgesAndCalculateExpectedGivenAge <- function(scMethMat, backupInformation
     
     predictionMatrix[sc,1] <- ageInfo[sc,2]
     predictionMatrix[sc,2] <- length(relMeth)
+    predictionMatrix[sc,3] <- ageInfo[sc,3]
     ageProbability = colSums(log(1-abs(expectedMethMat_sel_t - methData_validation_sel_t)))
-    predictionMatrix[sc,3] = floor(median(as.numeric(names(ageProbability)[which(ageProbability == max(ageProbability))])))
+    predictionMatrix[sc,4] = floor(median(as.numeric(names(ageProbability)[which(ageProbability == max(ageProbability))])))
+    predictionMatrix[sc,5] = abs(predictionMatrix[sc,1]-predictionMatrix[sc,4])
     
     ##Start predictions on random methylation values, on the right sides and forming the expected bulk methylation profile for a given age.
     colOfInterest = which(colnames(expectedMethMat)==expectedAges[sc,2])
@@ -280,42 +341,55 @@ predictAgesAndCalculateExpectedGivenAge <- function(scMethMat, backupInformation
         methylationvalues <- runif(nSimulations, 0, 1)
         methVexp = expectedMethMat_sel_r[rId,1]
         methVexp = quantile(methylationvalues,(1-methVexp))
-        
-        methylationvalues[which(methylationvalues<=methVexp)]=0
-        methylationvalues[which(methylationvalues>methVexp)]=1
         if(all(is.na(expectedRandomScData[rId,]))){
+          methylationvalues[which(methylationvalues<=methVexp)]=0
+          methylationvalues[which(methylationvalues>methVexp)]=1
           expectedRandomScData[rId,] = methylationvalues 
         } else {
+          if((mean(expectedRandomScData[rId,])/(x-1))>=expectedMethMat_sel_r[rId,1]){
+            methylationvalues[which(methylationvalues<=methVexp)]=0
+            methylationvalues[which(methylationvalues>methVexp)]=1
+          } else {
+            methylationvalues[which(methylationvalues<methVexp)]=0
+            methylationvalues[which(methylationvalues>=methVexp)]=1
+          }
           expectedRandomScData[rId,] = expectedRandomScData[rId,]+methylationvalues 
         }
       }
     }
     expectedRandomScData = expectedRandomScData/ageInfo[sc,3]
-    #mean(rowMeans(expectedRandomScData)-expectedMethMat_sel_r[,1])
+    #print(mean(rowMeans(expectedRandomScData)-expectedMethMat_sel_r[,1]))
     
     ##Age predict.
     predictedAgesRandom = NULL
+    
     for(cId in 1:nSimulations){
+      ageProbabilityR = (1-abs(expectedMethMat_sel_t - expectedRandomScData[,cId]))
       ageProbabilityR = colSums(log(1-abs(expectedMethMat_sel_t - expectedRandomScData[,cId])))
       predictedAgesRandom = c(predictedAgesRandom,as.numeric(colnames(expectedMethMat_sel_t)[which(ageProbabilityR == max(ageProbabilityR))]))
     }
-    if(plot){
+    
+    if(plotHist){
       hist(predictedAgesRandom,xlim=c(min(as.numeric(colnames(expectedMethMat))),max(as.numeric(colnames(expectedMethMat)))))
-      abline(v=predictionMatrix[sc,3],col="red")
+      abline(v=predictionMatrix[sc,4],col="red")
       abline(v=median(predictedAgesRandom),col="blue")
     }
     
-    predictionMatrix[sc,4] =  median(predictedAgesRandom)
-    predictionMatrix[sc,5] =  mad(predictedAgesRandom)
-    predictionMatrix[sc,6] =  (predictionMatrix[sc,3]-predictionMatrix[sc,4])/predictionMatrix[sc,5]
-    if(predictionMatrix[sc,6]>0){
-      predictionMatrix[sc,7] = length(which(predictedAgesRandom>=predictionMatrix[sc,3]))/nSimulations
+    predictionMatrix[sc,6] =  median(predictedAgesRandom)
+    predictionMatrix[sc,7] =  IQR(predictedAgesRandom)
+
+    predictionMatrix[sc,8] =  (predictionMatrix[sc,4]-predictionMatrix[sc,6])/predictionMatrix[sc,7]
+    if(is.na(predictionMatrix[sc,8])){
+      predictionMatrix[sc,8] = NA
+      predictionMatrix[sc,9] = 1
+    } else if(predictionMatrix[sc,8]>0){
+      predictionMatrix[sc,9] = length(which(predictedAgesRandom>=predictionMatrix[sc,4]))/nSimulations
     } else {
-      predictionMatrix[sc,7] = length(which(predictedAgesRandom<=predictionMatrix[sc,3]))/nSimulations
+      predictionMatrix[sc,9] = length(which(predictedAgesRandom<=predictionMatrix[sc,4]))/nSimulations
     }
     #Making sure we don't under-estimate FDR, rounding up to the minimal possible at this level of permutations.
-    if(predictionMatrix[sc,7]==0){
-      predictionMatrix[sc,7] = 1/nSimulations
+    if(predictionMatrix[sc,9]==0){
+      predictionMatrix[sc,9] = 0.9/nSimulations
     }
     rm(methData_validation_sel_t,expectedMethMat_sel_t,expectedRandomScData)
   }
