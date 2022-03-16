@@ -1,0 +1,7 @@
+actualAge	sitesUsed	predictedAge	MedianRandomAge	MAD	MAD_Ratio	FDR
+MethRate_SRR3136628_o11_-_a_single_liver_hepatocyte_1_trimmed_GRCm38_bismark_bt2.deduplicated.bismark.cov.gz	113	162	129	99	20.7564	1.44533734173556	0.2
+MethRate_SRR3136629_o12_-_a_single_liver_hepatocyte_1_trimmed_GRCm38_bismark_bt2.deduplicated.bismark.cov.gz	113	158	88	91	5.9304	-0.505868069607446	0.4
+MethRate_SRR3136630_o13_-_a_single_liver_hepatocyte_1_trimmed_GRCm38_bismark_bt2.deduplicated.bismark.cov.gz	113	143	129	88	16.3086	2.51401101259458	0.2
+MethRate_SRR3136654_y11_-_a_single_liver_hepatocyte_1_trimmed_GRCm38_bismark_bt2.deduplicated.bismark.cov.gz	17	93	40	25	16.3086	0.919760126558994	0.2
+MethRate_SRR3136655_y13_-_a_single_liver_hepatocyte_1_trimmed_GRCm38_bismark_bt2.deduplicated.bismark.cov.gz	17	100	17	28	7.413	-1.48387967084851	0.2
+MethRate_SRR3136658_y12_-_a_single_liver_hepatocyte_1_trimmed_GRCm38_bismark_bt2.deduplicated.bismark.cov.gz	17	111	7	19	1.4826	-8.09388911371914	0.2

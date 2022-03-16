@@ -1,0 +1,3 @@
+actualAge	sitesUsed	predictedAge	MedianRandomAge	MAD	MAD_Ratio	FDR
+MethRate_SRR3136665_o3b_-_Liver_hepatocytes_bulk_1_GRCm38_bismark_bt2.deduplicated.bismark.cov.gz	113	515	95	104	14.826	-0.607041683528936	0.2
+MethRate_SRR3136667_y3b_-_Liver_hepatocytes_bulk_1_GRCm38_bismark_bt2.deduplicated.bismark.cov.gz	17	580	10	23	1.4826	-8.76837987319574	0.2
