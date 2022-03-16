@@ -315,9 +315,9 @@ predictAgesAndCalculateExpectedGivenAge <- function(scMethMat, backupInformation
       stop();
     }
     
-    predictionMatrix[sc,1] <- ageInfo[sc,2]
+    predictionMatrix[sc,1] <- expectedAges[sc,2]
     predictionMatrix[sc,2] <- length(relMeth)
-    predictionMatrix[sc,3] <- ageInfo[sc,3]
+    predictionMatrix[sc,3] <- expectedAges[sc,3]
     ageProbability = colSums(log(1-abs(expectedMethMat_sel_t - methData_validation_sel_t)))
     predictionMatrix[sc,4] = floor(median(as.numeric(names(ageProbability)[which(ageProbability == max(ageProbability))])))
     predictionMatrix[sc,5] = abs(predictionMatrix[sc,1]-predictionMatrix[sc,4])
@@ -336,7 +336,7 @@ predictAgesAndCalculateExpectedGivenAge <- function(scMethMat, backupInformation
       stop();
     }
     
-    for(x in 1:ageInfo[sc,3]){
+    for(x in 1:expectedAges[sc,3]){
       for(rId in 1:nrow(expectedRandomScData)){
         methylationvalues <- runif(nSimulations, 0, 1)
         methVexp = expectedMethMat_sel_r[rId,1]
@@ -357,7 +357,7 @@ predictAgesAndCalculateExpectedGivenAge <- function(scMethMat, backupInformation
         }
       }
     }
-    expectedRandomScData = expectedRandomScData/ageInfo[sc,3]
+    expectedRandomScData = expectedRandomScData/expectedAges[sc,3]
     #print(mean(rowMeans(expectedRandomScData)-expectedMethMat_sel_r[,1]))
     
     ##Age predict.
