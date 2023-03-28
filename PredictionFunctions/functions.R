@@ -1,11 +1,16 @@
 ##Functions needed for the prediction of epi-genetic age
 
 #### Read COV files
-readCovFiles <- function(inputFolder, backupInformation){
+readCovFiles <- function(inputFolder, backupInformation, sampleSelection=NULL){
   sitesToConsiderFull = unique(c(backupInformation[,1],backupInformation[,2]))
   scFiles = list.files(inputFolder,full.names = T,recursive = T)
   scFiles = scFiles[grep(scFiles,pattern = ".cov$|.cov.gz$")]
   
+  if(!is.null(sampleSelection)){
+    scFiles=scFiles[grep(scFiles,pattern = sampleSelection)]
+  }
+  
+ 
   if(length(scFiles)==0){
     print("Error no files to be read in.")
   }
@@ -49,7 +54,6 @@ readCovFiles <- function(inputFolder, backupInformation){
   rm(scMeth)
   return(scMethMat)
 }
-
 
 #### Read subsetted COV files
 readScCovFiles <- function(inputFolder, backupInformation){
@@ -197,6 +201,7 @@ predictAges <- function(scMethMat, backupInformation, expectedMethMat){
     
     predictionMatrix[sc,1] <- length(relMeth)
     ageProbability = colSums(log(1-abs(expectedMethMat_sel_t - methData_validation_sel_t)))
+    plot(ageProbability)
     predictionMatrix[sc,2] = floor(median(as.numeric(names(ageProbability)[which(ageProbability == max(ageProbability))])))
     rm(methData_validation_sel_t,expectedMethMat_sel_t)
     
