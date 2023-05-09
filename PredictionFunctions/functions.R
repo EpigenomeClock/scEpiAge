@@ -48,8 +48,22 @@ readCovFiles <- function(inputFolder, backupInformation, sampleSelection=NULL){
   }
   options(warn = 1)
   
+  #Force (missing) primary sites to be added as NA. Code is expecting these are at least present.
+  toAdd = unique(backupInformation[,1])
+  toAdd = toAdd[-which(toAdd %in% scMeth$ID)]
+  if(length(toAdd)!=0){
+    extraMatDat = matrix(data = NA,nrow = length(toAdd),ncol = ncol(scMeth))
+    colnames(extraMatDat) = colnames(scMeth)
+    extraMatDat[,which(colnames(extraMatDat)=="ID")] = toAdd
+    extraMatDat = as.data.frame(extraMatDat)
+    for(i in 2:ncol(extraMatDat)){
+      extraMatDat[,i] = as.numeric(extraMatDat[,i])
+    }
+    scMeth = rbind(scMeth,extraMatDat)
+  }
+  
   rownames(scMeth) = scMeth$ID
-  scMeth = scMeth[,-1]
+  scMeth = scMeth[,-which(colnames(scMeth)=="ID")]
   scMethMat = as.matrix(scMeth)
   rm(scMeth)
   return(scMethMat)
@@ -95,11 +109,53 @@ readScCovFiles <- function(inputFolder, backupInformation){
   }
   options(warn = 1)
   
+  #Force (missing) primary sites to be added as NA. Code is expecting these are at least present.
+  toAdd = unique(backupInformation[,1])
+  toAdd = toAdd[-which(toAdd %in% scMeth$ID)]
+  if(length(toAdd)!=0){
+    extraMatDat = matrix(data = NA,nrow = length(toAdd),ncol = ncol(scMeth))
+    colnames(extraMatDat) = colnames(scMeth)
+    extraMatDat[,which(colnames(extraMatDat)=="ID")] = toAdd
+    extraMatDat = as.data.frame(extraMatDat)
+    for(i in 2:ncol(extraMatDat)){
+      extraMatDat[,i] = as.numeric(extraMatDat[,i])
+    }
+    scMeth = rbind(scMeth,extraMatDat)
+  }
+  
   rownames(scMeth) = scMeth$ID
-  scMeth = scMeth[,-1]
+  scMeth = scMeth[,-which(colnames(scMeth)=="ID")]
   scMethMat = as.matrix(scMeth)
   rm(scMeth)
   return(scMethMat)
+}
+
+processArrayData <- function(inputFile, backupInformation, sampleSelection=NULL){
+  sitesToConsiderFull = unique(c(backupInformation[,1],backupInformation[,2]))
+  methMat = read.delim(inputFile,as.is=T,check.names = F,sep=",")
+  methMat$chr = gsub(pattern = "chr",replacement = "",methMat$chr)
+  methMat["ID"] = paste(methMat$chr,methMat$start,sep = ":")
+  methMat = methMat[,c(ncol(methMat),5:(ncol(methMat)-1))]
+  methMat= methMat[which(methMat$ID%in%sitesToConsiderFull),]
+  
+  #Force (missing) primary sites to be added as NA. Code is expecting these are at least present.
+  toAdd = unique(backupInformation[,1])
+  toAdd = toAdd[-which(toAdd %in% methMat$ID)]
+  if(length(toAdd)!=0){
+    extraMatDat = matrix(data = NA,nrow = length(toAdd),ncol = ncol(methMat))
+    colnames(extraMatDat) = colnames(methMat)
+    extraMatDat[,which(colnames(extraMatDat)=="ID")] = toAdd
+    extraMatDat = as.data.frame(extraMatDat)
+    for(i in 2:ncol(extraMatDat)){
+      extraMatDat[,i] = as.numeric(extraMatDat[,i])
+    }
+    methMat = rbind(methMat,extraMatDat)
+  }
+  
+  rownames(methMat) = methMat$ID
+  methMat = methMat[,-which(colnames(extraMatDat)=="ID")]
+  methMat = as.matrix(methMat)
+  return(methMat)
 }
 
 ##Prediction
@@ -130,7 +186,7 @@ predictAges <- function(scMethMat, backupInformation, expectedMethMat){
     ##Try and add backup info.
     if(length(relMeth)<length(sitesToConsider)){
       #Get infomation for replacement values.
-      replacementValues = backupInformation[which(backupInformation[,1]%in% names(which(is.na(methData_validation_sel[,sc])))),]
+      replacementValues = backupInformation[which(backupInformation[,1]%in% rownames(methData_validation_sel)[(which(is.na(methData_validation_sel[,sc])))]),]
       replacementValues = replacementValues[which(replacementValues[,2]!="-"),]
       if(!is.null(nrow(replacementValues))) {
         if(nrow(replacementValues)==0){
@@ -167,6 +223,7 @@ predictAges <- function(scMethMat, backupInformation, expectedMethMat){
     }
 
     if((length(relMeth)+length(replacementValues))<5){
+      print(c(rownames(methData_validation_sel)[relMeth],replacementValues))
       next();
     }
     
@@ -251,7 +308,7 @@ predictAgesAndCalculateExpectedGivenAge <- function(scMethMat, backupInformation
     ##Try and add backup info.
     if(length(relMeth)<length(sitesToConsider)){
       #Get infomation for replacement values.
-      replacementValues = backupInformation[which(backupInformation[,1]%in% names(which(is.na(methData_validation_sel[,sc])))),]
+      replacementValues = backupInformation[which(backupInformation[,1]%in% rownames(methData_validation_sel)[(which(is.na(methData_validation_sel[,sc])))])),]
       replacementValues = replacementValues[which(replacementValues[,2]!="-"),]
       if(!is.null(nrow(replacementValues))) {
         if(nrow(replacementValues)==0){
