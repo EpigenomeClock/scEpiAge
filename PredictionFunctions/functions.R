@@ -308,7 +308,7 @@ predictAgesAndCalculateExpectedGivenAge <- function(scMethMat, backupInformation
     ##Try and add backup info.
     if(length(relMeth)<length(sitesToConsider)){
       #Get infomation for replacement values.
-      replacementValues = backupInformation[which(backupInformation[,1]%in% rownames(methData_validation_sel)[(which(is.na(methData_validation_sel[,sc])))])),]
+      replacementValues = backupInformation[which(backupInformation[,1]%in% rownames(methData_validation_sel)[(which(is.na(methData_validation_sel[,sc])))]),]
       replacementValues = replacementValues[which(replacementValues[,2]!="-"),]
       if(!is.null(nrow(replacementValues))) {
         if(nrow(replacementValues)==0){
